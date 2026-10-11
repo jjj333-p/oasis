@@ -1,4 +1,4 @@
-# oasis
+# Oasis
 Oasis the XMPP based chat app 
 
 This repo contains nothing coherent yet, but we managed to get a kinda broken chat window working!
