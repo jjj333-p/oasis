@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -19,10 +20,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.Serializable
 
 // halcyon
@@ -37,6 +43,7 @@ import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
 import kotlinx.io.readString
 import tigase.halcyon.core.Halcyon
+import tigase.halcyon.core.xmpp.stanzas.MessageType
 
 fun readConfigFile(filePath: String): String {
     val path = Path(filePath)
@@ -62,15 +69,17 @@ data class Config(
 data class OasisMessage(
     val fromDisplay: String,
     val body: String,
+    val replyToID: String?
 )
 
 data class Chat(
     val prettyName: String,
     val jid: String,
-    val messages: MutableList<OasisMessage>
+    val messages: MutableState<List<OasisMessage>>
 )
 
 var halcyon: Halcyon? = null
+
 
 @Composable
 fun App(padding: Dp) {
@@ -110,6 +119,8 @@ fun App(padding: Dp) {
                 Text("Select a chat to start messaging", modifier = Modifier.padding(24.dp))
             } else {
                 Column(modifier = Modifier.fillMaxSize()) {
+                    var sendBoxContent by remember { mutableStateOf("") }
+
                     // Header
                     Text(
                         text = "Chatting with ${openChat!!.prettyName}",
@@ -118,6 +129,7 @@ fun App(padding: Dp) {
                     )
 
                     HorizontalDivider()
+                    val thismsglistfromremember by remember { openChat!!.messages }
 
                     // Message List
                     // reverseLayout = true forces the list to start from the bottom
@@ -125,26 +137,81 @@ fun App(padding: Dp) {
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         reverseLayout = true
                     ) {
-                        val messages = openChat!!.messages.reversed()
+                        println("redoing message list")
+
+                        val messages = thismsglistfromremember.reversed()
                         // When using reverseLayout, feed the items in reverse order
                         // so the newest message stays at the absolute bottom.
-                        items(openChat!!.messages.size) { msgNum ->
+                        items(messages.size) { msgNum ->
+                            println("working on message $msgNum")
                             val msg = messages.getOrNull(msgNum) ?: return@items
-                            Text(
-                                text = "${msg.fromDisplay}: ${msg.body}",
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = "${msg.fromDisplay}: ${msg.body}",
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).weight(1f)
+                                )
+                                Button(
+                                    onClick = {
+                                        sendBoxContent =
+                                            msg.body.split('\n').joinToString(
+                                                separator = "\n> ", prefix = "> ", postfix = "\n"
+                                            ) + sendBoxContent
+                                    },
+                                    shape = MaterialTheme.shapes.medium,
+                                    content = { Text("Reply") },
+                                    enabled = msg.replyToID != null
+                                )
+                            }
                         }
                     }
 
-                    // Input Area (Text field + Send button would go here)
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        placeholder = { Text("Type a message...") }
-                    )
+                    Row(modifier = Modifier.fillMaxWidth()) {
+
+
+                        fun sendTheBullshit() {
+                            val whatWeWantToSend = sendBoxContent
+                            sendBoxContent = ""
+                            halcyon!!.request.message {
+                                to = openChat!!.jid.toBareJID()
+                                type = MessageType.Chat
+                                body = whatWeWantToSend
+                            }.send()
+                            openChat!!.messages.value += OasisMessage("You", whatWeWantToSend, null)
+                        }
+
+                        // Input Area (Text field + Send button would go here)
+                        OutlinedTextField(
+                            value = sendBoxContent,
+                            onValueChange = {
+                                sendBoxContent = it
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+//                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .onKeyEvent {
+                                    if (
+                                        it.type == KeyEventType.KeyUp &&
+                                        it.key == Key.Enter &&
+                                        (it.isShiftPressed || it.isCtrlPressed)
+                                    ) {
+                                        sendTheBullshit()
+                                        return@onKeyEvent true
+                                    }
+                                    return@onKeyEvent false
+                                },
+                            placeholder = { Text("Type a message...") }
+                        )
+
+                        Button(
+                            onClick = { sendTheBullshit() },
+                            shape = MaterialTheme.shapes.medium,
+                            content = { Text("Send message") },
+                            enabled = sendBoxContent != ""
+                        )
+                    }
                 }
+
             }
         }
     }
@@ -152,7 +219,7 @@ fun App(padding: Dp) {
     LaunchedEffect(Unit) {
         val config = Json.decodeFromString<Config>(readConfigFile("/home/joseph/Documents/xmpp-bot/demo/config.json"))
 
-        val botScope = CoroutineScope(Dispatchers.Default)
+//        val botScope = CoroutineScope(Dispatchers.Default)
 
         halcyon = createHalcyon {
             install(MUCModule)
@@ -165,19 +232,22 @@ fun App(padding: Dp) {
         halcyon!!.eventBus.register(MessageReceivedEvent) {
             val from = it.stanza.from!!.toString()
             val body = it.stanza.body ?: return@register
+            val id = it.stanza.id ?: return@register
             var chat = chatsByJID[from]
             if (chat == null) {
                 println("chat is null")
                 chat = Chat(
                     prettyName = from,
                     jid = from,
-                    messages = mutableListOf(OasisMessage(from, body))
+                    messages = mutableStateOf(listOf(OasisMessage("Gay Person", body, id)))
+//                    messages = mutableListOf(OasisMessage(from, body))
                 )
                 chatsByJID[from] = chat
                 chats.add(chat)
             } else {
                 // TODO: this doesnt seem to be working
-                chat.messages.add(OasisMessage(from, body))
+                println("chat with $from already exists")
+                chat.messages.value += OasisMessage("Gay person", body, id)
             }
 //            chatWindow.add("from:$from, body:$body")
         }
