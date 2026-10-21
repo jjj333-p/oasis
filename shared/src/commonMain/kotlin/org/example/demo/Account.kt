@@ -1,22 +1,19 @@
 package org.example.demo
 
-import androidx.compose.runtime.*
+// halcyon
+
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import kotlinx.serialization.Serializable
-
-// halcyon
+import kotlinx.serialization.json.Json
+import tigase.halcyon.core.Halcyon
 import tigase.halcyon.core.builder.createHalcyon
+import tigase.halcyon.core.xmpp.JID
 import tigase.halcyon.core.xmpp.modules.MessageReceivedEvent
 import tigase.halcyon.core.xmpp.modules.muc.MUCModule
-import tigase.halcyon.core.xmpp.toBareJID
-import kotlinx.serialization.json.Json
-
-import tigase.halcyon.core.Halcyon
-import tigase.halcyon.core.requests.modifyMessage
-import tigase.halcyon.core.xmpp.JID
-import tigase.halcyon.core.xmpp.stanzas.Message
 import tigase.halcyon.core.xmpp.stanzas.MessageType
-import kotlin.collections.plus
+import tigase.halcyon.core.xmpp.toBareJID
 
 
 @Serializable
@@ -26,19 +23,6 @@ data class Config(
     val prejoin: List<String>?
 )
 
-data class OasisMessage(
-    val displayFrom: String,
-    val underlyingMessage: Message
-)
-
-data class Chat(
-    val account: Account,
-    val prettyName: String,
-    val jid: String,
-    val messages: MutableState<List<OasisMessage>>,
-    val replyingTo: MutableState<OasisMessage?>
-)
-
 data class UIState(
     val openChat: MutableState<Chat?>,
     val chats: MutableList<Chat>,
@@ -46,7 +30,7 @@ data class UIState(
 )
 
 
-class Account constructor(s: UIState) {
+class Account(s: UIState) {
     val state = s
     var halcyon: Halcyon? = null
 
@@ -72,18 +56,18 @@ class Account constructor(s: UIState) {
                 chat = Chat(
                     prettyName = from,
                     jid = from,
-                    messages = mutableStateOf(listOf(OasisMessage("Gay Person", it.stanza))),
+                    _messages = mutableStateOf(listOf<OasisMessage>()),
                     account = this,
                     replyingTo = mutableStateOf(null)
-//                    messages = mutableListOf(OasisMessage(from, body))
                 )
                 this.state.chatsByJID[from] = chat
                 this.state.chats.add(chat)
             } else {
-                // TODO: this doesnt seem to be working
                 println("chat with $from already exists")
-                chat.messages.value += OasisMessage("Gay person", it.stanza)
             }
+            chat.addMessage(
+                OasisMessage("Gay person", it.stanza, chat)
+            )
 //            chatWindow.add("from:$from, body:$body")
         }
 
@@ -115,8 +99,10 @@ class Account constructor(s: UIState) {
         val sentMsg = msg.send()
 
         val relevantChat = openChat ?: this.state.chatsByJID[sentMsg.jid.toString()]
-                ?: throw RuntimeException("Cannot find a relevant chat to add to history")
+        ?: throw RuntimeException("Cannot find a relevant chat to add to history")
 
-        relevantChat.messages.value += OasisMessage("you",sentMsg.stanza)
+        relevantChat.addMessage(
+            OasisMessage("you", sentMsg.stanza, relevantChat)
+        )
     }
 }
