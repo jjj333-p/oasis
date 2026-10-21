@@ -52,7 +52,7 @@ class Account constructor(s: UIState) {
 
     //        val botScope = CoroutineScope(Dispatchers.Default)
     init {
-        val config = Json.decodeFromString<Config>(readConfigFile("./config.json"))
+        val config = Json.decodeFromString<Config>(readConfigFile("/home/joseph/Documents/xmpp-bot/demo/config.json"))
 
         halcyon = createHalcyon {
             install(MUCModule)
