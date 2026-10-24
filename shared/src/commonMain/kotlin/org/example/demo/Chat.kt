@@ -1,33 +1,11 @@
 package org.example.demo
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isCtrlPressed
-import androidx.compose.ui.input.key.isShiftPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import tigase.halcyon.core.xmpp.toJID
 
@@ -92,6 +70,15 @@ data class Chat(
             val replyMsg = replyMsgState.value
             if (replyMsg != null) {
                 Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+                    // this is ass but works for now
+                    Button(
+                        onClick = {
+                            thisChat.replyingTo.value = null
+                        },
+                        shape = MaterialTheme.shapes.medium,
+                        content = { Text("❌") },
+                        enabled = true
+                    )
                     VerticalDivider(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 1.dp)
                     )

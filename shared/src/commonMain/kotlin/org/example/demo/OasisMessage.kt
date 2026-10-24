@@ -1,15 +1,13 @@
 package org.example.demo
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color.Companion.Red
 import androidx.compose.ui.unit.dp
 import tigase.halcyon.core.xmpp.stanzas.Message
 
@@ -47,44 +45,44 @@ class OasisMessage(
 
         val bodyChars = underlyingMessage.body?.toCharArray()
 
-        cleanBody = underlyingMessage.body ?: ""
-//            if (bodyChars != null) {
-//                val fallbacks = underlyingMessage.getChildrenNS("urn:xmpp:fallback:0").filter {
-//                    val rightName = it.name == "fallback"
-//                    if (!rightName) return@filter false
-//
-//                    val forNS = it.attributes["for"] ?: return@filter false
-//                    if (!supportedFallbacks.contains(forNS)) return@filter false
-//
-//                    val forBody = it.getFirstChild("body") ?: return@filter false
-//
-//                    val end = forBody.attributes["end"]?.toIntOrNull() ?: return@filter false
-//                    val start = forBody.attributes["start"]?.toIntOrNull() ?: return@filter false
-//
-//                    return@filter end > start
-//                }.map {
-//                    val forBody = it.getFirstChild("body")!!
-//
-//                    fallbackRange(
-//                        it.attributes["for"]!!,
-//                        forBody.attributes["start"]!!.toInt(),
-//                        forBody.attributes["end"]!!.toInt()
-//                    )
-//                }
-//                if (fallbacks.isNotEmpty()) {
-//                    bodyChars.filterIndexed { index, ch ->
-//                        val remove = fallbacks.any {
-//                            it.start <= index && it.end < (index - 1)
-//                        }
-//                        println("char=$ch; remove=$remove")
-//                        remove
-//                    }.toCharArray().concatToString()
-//                } else {
-//                    underlyingMessage.body!!
-//                }
-//            } else {
-//                ""
-//            }
+        cleanBody = //underlyingMessage.body ?: ""
+        if (bodyChars != null) {
+            val fallbacks = underlyingMessage.getChildrenNS("urn:xmpp:fallback:0").filter {
+                val rightName = it.name == "fallback"
+                if (!rightName) return@filter false
+
+                val forNS = it.attributes["for"] ?: return@filter false
+                if (!supportedFallbacks.contains(forNS)) return@filter false
+
+                val forBody = it.getFirstChild("body") ?: return@filter false
+
+                val end = forBody.attributes["end"]?.toIntOrNull() ?: return@filter false
+                val start = forBody.attributes["start"]?.toIntOrNull() ?: return@filter false
+
+                return@filter end > start
+            }.map {
+                val forBody = it.getFirstChild("body")!!
+
+                fallbackRange(
+                    it.attributes["for"]!!,
+                    forBody.attributes["start"]!!.toInt(),
+                    forBody.attributes["end"]!!.toInt()
+                )
+            }
+            if (fallbacks.isNotEmpty()) {
+                bodyChars.filterIndexed { index, ch ->
+                    val remove = fallbacks.any {
+                        it.start <= index && it.end > index
+                    }
+                    println("char=$ch; remove=$remove")
+                    !remove
+                }.toCharArray().concatToString()
+            } else {
+                underlyingMessage.body!!
+            }
+        } else {
+            ""
+        }
 
     }
 
@@ -95,12 +93,17 @@ class OasisMessage(
         val replyToDisplay = thisMessage.repliedMessage
 
         // the message ui
-        Column {
-            Text(displayFrom)
+        Column(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+            Text(
+                text = displayFrom,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).weight(1f)
+            )
 
             if (!nested && replyToDisplay != null) {
-                Row() {
+                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                     VerticalDivider(
+                        color = Red,
+                        thickness = 2.dp,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 1.dp)
                     )
                     replyToDisplay.Display(true)
