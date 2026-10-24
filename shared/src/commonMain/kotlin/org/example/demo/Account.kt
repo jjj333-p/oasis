@@ -4,6 +4,7 @@ package org.example.demo
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -56,7 +57,7 @@ class Account(s: UIState) {
                 chat = Chat(
                     prettyName = from,
                     jid = from,
-                    _messages = mutableStateOf(listOf<OasisMessage>()),
+                    _messages = SnapshotStateList<OasisMessage>( ),
                     account = this,
                     replyingTo = mutableStateOf(null)
                 )

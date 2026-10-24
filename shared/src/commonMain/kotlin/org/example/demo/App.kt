@@ -10,6 +10,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import kotlinx.io.buffered
 import kotlinx.io.files.Path
 import kotlinx.io.files.SystemFileSystem
@@ -39,6 +40,7 @@ fun App(padding: Dp) {
     val chats: SnapshotStateList<Chat> = remember { mutableStateListOf() }
     val chatsByJID: SnapshotStateMap<String, Chat> = remember { mutableStateMapOf() }
     val accounts = remember { mutableStateListOf<Account>() }
+    var showJoinDialogue by remember { mutableStateOf(false) }
 
     val state = UIState(
         openChat = openChatState,
@@ -56,6 +58,21 @@ fun App(padding: Dp) {
             color = MaterialTheme.colorScheme.surfaceVariant
         ) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
+
+                // 1. A single item for the top button
+                item {
+                    Button(
+                        onClick = { showJoinDialogue = true },
+                        shape = MaterialTheme.shapes.medium,
+                        content = { Text("Send message") },
+                        enabled = true,
+                        // Added some padding so it sits nicely in the sidebar
+                        modifier = Modifier.padding(16.dp).fillMaxWidth()
+                    )
+                }
+
+                // 2. Iterate directly over the chats list
+                // (Make sure to import androidx.compose.foundation.lazy.items)
                 items(chats.size) { chatNum ->
                     val chat = chats.getOrNull(chatNum) ?: return@items
                     Text(
@@ -81,6 +98,32 @@ fun App(padding: Dp) {
             }
         }
     }
+
+
+    if (showJoinDialogue) Dialog(onDismissRequest = { println("dismissed") }) {
+        Surface(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Enter your name")
+                OutlinedTextField(
+                    value = "sendBoxContent",
+                    onValueChange = {
+//                        sendBoxContent = it
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+//                                .fillMaxWidth()
+                        .padding(16.dp),
+                    placeholder = { Text("Type a message...") }
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = { showJoinDialogue = false }) { Text("Cancel") }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = { }) { Text("OK") }
+                }
+            }
+        }
+    }
+
 
     // runner to start account
     LaunchedEffect(Unit) {

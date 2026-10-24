@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
@@ -13,14 +14,14 @@ data class Chat(
     val account: Account,
     val prettyName: String,
     val jid: String,
-    val _messages: MutableState<List<OasisMessage>>,
+    val _messages: SnapshotStateList<OasisMessage>,
     val replyingTo: MutableState<OasisMessage?>
 ) {
     private val messagesByID = mutableMapOf<String, OasisMessage>()
     private val thisChat = this
 
     fun addMessage(message: OasisMessage) {
-        _messages.value += message
+        _messages.add(message)
         val mID = message.underlyingMessage.id ?: return
         messagesByID[mID] = message
     }
@@ -42,8 +43,6 @@ data class Chat(
             )
             HorizontalDivider()
 
-            val msgList by remember { thisChat._messages }
-
             // Message List
             // reverseLayout = true forces the list to start from the bottom
             LazyColumn(
@@ -54,7 +53,7 @@ data class Chat(
 
                 // When using reverseLayout, feed the items in reverse order
                 // so the newest message stays at the absolute bottom.
-                val messages = msgList.reversed()
+                val messages = _messages.reversed()
 
                 // create the ui for each message
                 items(messages.size) { msgNum ->
@@ -66,8 +65,7 @@ data class Chat(
             }
 
             // little in reply to ui box
-            val replyMsgState = remember { thisChat.replyingTo }
-            val replyMsg = replyMsgState.value
+            val replyMsg = thisChat.replyingTo.value
             if (replyMsg != null) {
                 Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                     // this is ass but works for now

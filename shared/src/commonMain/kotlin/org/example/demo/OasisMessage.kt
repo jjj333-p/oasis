@@ -46,43 +46,43 @@ class OasisMessage(
         val bodyChars = underlyingMessage.body?.toCharArray()
 
         cleanBody = //underlyingMessage.body ?: ""
-        if (bodyChars != null) {
-            val fallbacks = underlyingMessage.getChildrenNS("urn:xmpp:fallback:0").filter {
-                val rightName = it.name == "fallback"
-                if (!rightName) return@filter false
+            if (bodyChars != null) {
+                val fallbacks = underlyingMessage.getChildrenNS("urn:xmpp:fallback:0").filter {
+                    val rightName = it.name == "fallback"
+                    if (!rightName) return@filter false
 
-                val forNS = it.attributes["for"] ?: return@filter false
-                if (!supportedFallbacks.contains(forNS)) return@filter false
+                    val forNS = it.attributes["for"] ?: return@filter false
+                    if (!supportedFallbacks.contains(forNS)) return@filter false
 
-                val forBody = it.getFirstChild("body") ?: return@filter false
+                    val forBody = it.getFirstChild("body") ?: return@filter false
 
-                val end = forBody.attributes["end"]?.toIntOrNull() ?: return@filter false
-                val start = forBody.attributes["start"]?.toIntOrNull() ?: return@filter false
+                    val end = forBody.attributes["end"]?.toIntOrNull() ?: return@filter false
+                    val start = forBody.attributes["start"]?.toIntOrNull() ?: return@filter false
 
-                return@filter end > start
-            }.map {
-                val forBody = it.getFirstChild("body")!!
+                    return@filter end > start
+                }.map {
+                    val forBody = it.getFirstChild("body")!!
 
-                fallbackRange(
-                    it.attributes["for"]!!,
-                    forBody.attributes["start"]!!.toInt(),
-                    forBody.attributes["end"]!!.toInt()
-                )
-            }
-            if (fallbacks.isNotEmpty()) {
-                bodyChars.filterIndexed { index, ch ->
-                    val remove = fallbacks.any {
-                        it.start <= index && it.end > index
-                    }
-                    println("char=$ch; remove=$remove")
-                    !remove
-                }.toCharArray().concatToString()
+                    fallbackRange(
+                        it.attributes["for"]!!,
+                        forBody.attributes["start"]!!.toInt(),
+                        forBody.attributes["end"]!!.toInt()
+                    )
+                }
+                if (fallbacks.isNotEmpty()) {
+                    bodyChars.filterIndexed { index, ch ->
+                        val remove = fallbacks.any {
+                            it.start <= index && it.end > index
+                        }
+                        println("char=$ch; remove=$remove")
+                        !remove
+                    }.toCharArray().concatToString()
+                } else {
+                    underlyingMessage.body!!
+                }
             } else {
-                underlyingMessage.body!!
+                ""
             }
-        } else {
-            ""
-        }
 
     }
 
@@ -128,5 +128,6 @@ class OasisMessage(
                     )
             }
         }
+
     }
 }
