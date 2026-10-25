@@ -3,6 +3,6 @@ Oasis the XMPP based chat app
 
 This repo contains nothing coherent yet, but we managed to get a kinda broken chat window working!
 
-<img width="1528" height="1036" alt="image" src="https://github.com/user-attachments/assets/41a9d7c0-3ea2-4cb1-83b4-76e3f970538d" />
+<img width="834" height="673" alt="Screenshot_20261025_134757" src="https://github.com/user-attachments/assets/e8442dc6-a97d-4f04-8e88-46f1351b6721" />
 
 Send me money: [pain.agency/tip](https://pain.agency/tip)
